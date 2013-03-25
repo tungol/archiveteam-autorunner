@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+from argparse import ArgumentParser
+from os.path import expanduser
+
+import seesaw
+seesaw.runner_type = "Standalone"
+
+from autorunner import Autorunner
+
+def main():
+  parser = ArgumentParser(description="Run the warrior web interface")
+  parser.add_argument("downloader", metavar="DOWNLOADER", type=str,
+                      help="your username")
+  parser.add_argument("--projects-dir", dest="projects_dir", metavar="DIRECTORY", type=str,
+                      help="the warrior projects directory",
+                      default=expanduser('~/.archiveteam/projects'))
+  parser.add_argument("--data-dir", dest="data_dir", metavar="DIRECTORY", type=str,
+                      help="the data directory",
+                      default=expanduser('~/.archiveteam/data'))
+  parser.add_argument("--port", dest="port_number",
+                      help="the port number for the web interface (default: 8001)",
+                      metavar="PORT", type=int, default=8001)
+  parser.add_argument("--address", dest="address",
+                      help="the IP address of the web interface (default: 0.0.0.0)",
+                      metavar="HOST", type=str, default="0.0.0.0")
+  parser.add_argument("--concurrent", dest="concurrent_items",
+                      help="work on N items at a time (default: 1)",
+                      metavar="N", type=int, default=1)
+  args = parser.parse_args()
+  
+  autorunner = Autorunner(
+      args.projects_dir,
+      args.data_dir,
+      args.downloader,
+      args.concurrent_items,
+      args.address,
+      args.port_number)
+  
+  autorunner.start()
+
+
+if __name__ == "__main__":
+  main()
+
