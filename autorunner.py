@@ -12,7 +12,7 @@ from distutils.version import StrictVersion
 
 from tornado import ioloop
 from tornado import gen
-from tornado.httpclient import AsyncHTTPClient#, HTTPRequest
+from tornado.httpclient import AsyncHTTPClient
 
 import seesaw
 from seesaw.event import Event
@@ -23,9 +23,10 @@ from seesaw.web import start_runner_server
 URL = 'http://warriorhq.archiveteam.org/projects.json'
 
 class Autorunner(object):
-  def __init__(self, projects_dir, data_dir, downloader, concurrent_items, address, port):
-    self.projects_dir = projects_dir
-    self.data_dir = data_dir
+  def __init__(self, autorun_dir, downloader, concurrent_items, address, port):
+    self.projects_dir = os.path.join(autorun_dir, 'projects')
+    self.versioned_dir = os.path.join(autorun_dir, 'versioned_projects')
+    self.data_dir = os.path.join(autorun_dir, 'data')
     self.downloader = downloader
     self.concurrent_items = concurrent_items
     self.address = address
@@ -59,8 +60,7 @@ class Autorunner(object):
     self.installing = False
     self.shut_down_flag = False
     
-    self.hq_updater = ioloop.PeriodicCallback(self.update_projects, 10*60*1000)
-    self.project_updater = ioloop.PeriodicCallback(self.update_project, 60*60*1000)
+    self.project_updater = ioloop.PeriodicCallback(self.update_projects, 10*60*1000)
     self.forced_stop_timeout = None
   
   @gen.engine
@@ -83,16 +83,17 @@ class Autorunner(object):
         if "deadline" in project_data:
           project_data["deadline_int"] = time.mktime(time.strptime(project_data["deadline"], "%Y-%m-%dT%H:%M:%SZ"))
       
-      if self.selected_project and not self.selected_project in self.projects:
-        self.select_project(None)
+      # ArchiveTeam's choice
+      if "auto_project" in data:
+        self.select_project(data["auto_project"])
       else:
-        # ArchiveTeam's choice
-        if "auto_project" in data:
-          self.select_project(data["auto_project"])
-        else:
-          self.select_project(None)
+        self.select_project(None)
       
       self.on_projects_loaded(self, self.projects)
+      
+      if self.selected_project and (yield gen.Task(self.check_project_has_update, self.selected_project)):
+        # restart project if it needs an update
+        self.start_selected_project()
     
     else:
       print "HTTP error %s" % (response.code)
@@ -166,7 +167,7 @@ class Autorunner(object):
             callback(False)
           return
       
-      data_dir = os.path.join(self.data_dir, "data")
+      data_dir = self.data_dir
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
       os.makedirs(data_dir)
@@ -184,12 +185,6 @@ class Autorunner(object):
       self.installing = None
       if callback:
         callback(True)
-  
-  @gen.engine
-  def update_project(self):
-    if self.selected_project and (yield gen.Task(self.check_project_has_update, self.selected_project)):
-      # restart project
-      self.start_selected_project()
   
   @gen.engine
   def check_project_has_update(self, project_name, callback):
@@ -259,10 +254,10 @@ class Autorunner(object):
         stdout=subprocess.PIPE
     ).communicate()[0].strip()
     
-    project_versioned_path = os.path.join(self.data_dir, "projects", "%s-%s" % (project_name, version_string))
+    project_versioned_path = os.path.join(self.versioned_dir, "%s-%s" % (project_name, version_string))
     if not os.path.exists(project_versioned_path):
-      if not os.path.exists(os.path.join(self.data_dir, "projects")):
-        os.makedirs(os.path.join(self.data_dir, "projects"))
+      if not os.path.exists(self.versioned_dir):
+        os.makedirs(self.versioned_dir)
       
       subprocess.Popen(
           args=[ "git", "clone", project_path, project_versioned_path ],
@@ -348,7 +343,6 @@ class Autorunner(object):
         sys.exit()
   
   def start(self):
-    self.hq_updater.start()
     self.project_updater.start()
     self.update_projects()
     ioloop.IOLoop.instance().start()
