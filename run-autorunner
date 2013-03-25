@@ -8,7 +8,7 @@ seesaw.runner_type = "Standalone"
 from autorunner import Autorunner
 
 def main():
-  parser = ArgumentParser(description="Run the warrior web interface")
+  parser = ArgumentParser(description="Run Archive Team's choice.")
   parser.add_argument("downloader", metavar="DOWNLOADER", type=str,
                       help="your username")
   parser.add_argument("--dir", dest="autorun_dir", metavar="DIRECTORY", type=str,
@@ -17,6 +17,9 @@ def main():
   parser.add_argument("--port", dest="port_number",
                       help="the port number for the web interface (default: 8001)",
                       metavar="PORT", type=int, default=8001)
+  parser.add_argument("--disable-web-server", dest="enable_web_server",
+                      help="disable the web interface",
+                      action="store_false")
   parser.add_argument("--address", dest="address",
                       help="the IP address of the web interface (default: 0.0.0.0)",
                       metavar="HOST", type=str, default="0.0.0.0")
@@ -30,7 +33,8 @@ def main():
       args.downloader,
       args.concurrent_items,
       args.address,
-      args.port_number)
+      args.port_number,
+      args.enable_web_server)
   
   autorunner.start()
 

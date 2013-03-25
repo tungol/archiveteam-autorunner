@@ -22,8 +22,21 @@ from seesaw.web import start_runner_server
 
 URL = 'http://warriorhq.archiveteam.org/projects.json'
 
+class PrintRunner(Runner):
+  def __init__(self, stop_file=None, concurrent_items=1, max_items=None):
+    Runner.__init__(self, stop_file=stop_file, concurrent_items=concurrent_items, max_items=max_items)
+    
+    self.on_create_item += self._handle_create_item
+  
+  def _handle_create_item(self, ignored, item):
+    item.on_output += self._handle_item_output
+  
+  def _handle_item_output(self, item, data):
+    sys.stdout.write(data)
+  
+
 class Autorunner(object):
-  def __init__(self, autorun_dir, downloader, concurrent_items, address, port):
+  def __init__(self, autorun_dir, downloader, concurrent_items, address, port, enable_web_server):
     self.projects_dir = os.path.join(autorun_dir, 'projects')
     self.versioned_dir = os.path.join(autorun_dir, 'versioned_projects')
     self.data_dir = os.path.join(autorun_dir, 'data')
@@ -31,11 +44,13 @@ class Autorunner(object):
     self.concurrent_items = concurrent_items
     self.address = address
     self.port = port
+    self.enable_web_server = enable_web_server
     
     # disable the password prompts
     self.gitenv = dict( os.environ.items() + { 'GIT_ASKPASS': 'echo', 'SSH_ASKPASS': 'echo' }.items() )
     
-    self.runner = Runner(concurrent_items=self.concurrent_items)
+    stop_file = os.path.join(autorun_dir, 'STOP')
+    self.runner = PrintRunner(concurrent_items=self.concurrent_items, stop_file=stop_file)
     self.runner.on_finish += self.handle_runner_finish
         
     self.current_project_name = None
@@ -308,11 +323,14 @@ class Autorunner(object):
       pipeline_path = os.path.join(project_versioned_path, "pipeline.py")
       (project, pipeline) = self.load_pipeline(pipeline_path, { "downloader": self.downloader })
       
+      print pipeline
+      
       # start the pipeline
       if not self.shut_down_flag:
         self.runner.set_current_pipeline(pipeline)
       
-      start_runner_server(project, self.runner, bind_address=self.address, port_number=self.port)
+      if self.enable_web_server:
+        start_runner_server(project, self.runner, bind_address=self.address, port_number=self.port)
       
       self.current_project_name = project_name
       self.current_project = project
