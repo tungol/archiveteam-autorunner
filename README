@@ -1,0 +1,19 @@
+Forked from the scripts used in ArchiveTeam's Warrior. This is intended to be somewhat of a middle ground between the Warrior and the run-pipeline scripts.
+
+usage: run-autorunner [-h] [--dir DIRECTORY] [--port PORT]
+                      [--disable-web-server] [--address HOST] [--concurrent N]
+                      DOWNLOADER
+
+Run Archive Team's choice.
+
+positional arguments:
+  DOWNLOADER            your username
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dir DIRECTORY       directory for data and projects
+  --port PORT           the port number for the web interface (default: 8001)
+  --disable-web-server  disable the web interface
+  --address HOST        the IP address of the web interface (default: 0.0.0.0)
+  --concurrent N        work on N items at a time (default: 1)
+
