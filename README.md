@@ -12,7 +12,7 @@ Aside from that, you'll need whatever is required by the individual project. At 
  * rsync
  * wget-lua
 
-The provided script (get-wget-lua.sh) is copied from the current project, and works fine on OS X and Linux. On FreeBSD it took some poking with. Take the binary it produces it and put it in the directory you're going to use as the working directory, *not* somewhere in your path, as the project scripts won't look for it there. The default is ~/.archiveteam/ .
+The provided script (get-wget-lua.sh) is copied from the current project, and works fine on OS X and Linux. On FreeBSD it took some poking with. Take the binary it produces it and put it in the directory you're going to use as the working directory, *not* somewhere in your path, as the project scripts won't look for it there. The default is ~/.archiveteam/
 
 Building wget-lua requires:
 
